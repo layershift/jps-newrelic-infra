@@ -1,0 +1,77 @@
+version: 0.1
+type: update
+name: 'Newrelic Infrastructure Agent'
+homepage: https://github.com/layershift/jps-newrelic-infra
+id: 'newrelic-infra'
+description:
+  short: Installs and makes the new relic infra-agent replicate when horizontal scaling
+logo: newrelic.png
+categories:
+ - apps/others
+
+targetNodes:
+  nodeGroup: 'cp'
+
+settings:
+  fields:
+      - type: string
+        caption: License Key
+        name: license
+
+onInstall: doInstall
+
+onAfterRedeployContainer [nodeGroup:cp]:
+  - forEach(event.response.responses):
+      deployRPM:
+        nodeId: ${@i.nodeid}
+        
+onAfterRedeployContainer [nodeGroup:bl]:
+  - forEach(event.response.responses):
+      deployRPM:
+        nodeId: ${@i.nodeid}
+
+onAfterRedeployContainer [sqldb]:
+  - forEach(event.response.responses):
+      deployRPM:
+        nodeId: ${@i.nodeid}
+
+onAfterScaleOut [nodeGroup:cp]:
+  - forEach(event.response.nodes):
+      deployRPM:
+        nodeId: ${@i.id}
+onAfterScaleOut [nodeGroup:bl]:
+  - forEach(event.response.nodes):
+      deployRPM:
+        nodeId: ${@i.id}
+onAfterScaleOut [nodeGroup:sqldb]:
+  - forEach(event.response.nodes):
+      deployRPM:
+        nodeId: ${@i.id}
+
+onUninstall: doUninstall
+
+actions:
+  doInstall:
+    - forEach(nodes.cp):
+        deployRPM:
+          nodeId: ${@i.id}
+  doUninstall:
+    - forEach(nodes.cp):
+        removeRPM:
+          nodeId: ${@i.id}
+
+  deployRPM:
+    user: root
+    cmd[${targetNodes.nodeGroup}]:
+        - echo "license_key: ${settings.license}" | sudo tee -a /etc/newrelic-infra.yml
+        - curl -o /etc/yum.repos.d/newrelic-infra.repo https://download.newrelic.com/infrastructure_agent/linux/yum/el/7/x86_64/newrelic-infra.repo
+        - yum -q makecache -y --disablerepo='*' --enablerepo='newrelic-infra'
+        - yum -q install newrelic-infra -y
+        - systemctl start newrelic-infra
+  removeRPM:
+    user: root
+    cmd[${targetNodes.nodeGroup}]:
+        - systemctl stop newrelic-infra
+        - systemctl disable newrelic-infra
+        - yum -q autoremove newrelic-infra -y
+        - rm -rf /etc/yum.repos.d/newrelic-infra.repo
