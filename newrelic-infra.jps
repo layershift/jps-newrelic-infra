@@ -30,7 +30,7 @@ onAfterRedeployContainer [nodeGroup:bl]:
       deployRPM:
         nodeId: ${@i.nodeid}
 
-onAfterRedeployContainer [sqldb]:
+onAfterRedeployContainer [nodeGroup:sqldb]:
   - forEach(event.response.responses):
       deployRPM:
         nodeId: ${@i.nodeid}
