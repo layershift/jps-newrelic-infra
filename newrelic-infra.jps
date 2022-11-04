@@ -10,7 +10,8 @@ categories:
  - apps/others
 
 targetNodes:
-  nodeGroup: 'cp'
+  nodeType:
+  - "*"
 
 settings:
   fields:
@@ -18,56 +19,37 @@ settings:
         caption: License Key
         name: license
 
-onInstall: doInstall
+onInstall:
+  deployRPM:
+    nodeId: ${targetNodes.nodeGroup}
 
-onAfterRedeployContainer [nodeGroup:cp]:
+
+onAfterRedeployContainer:
   - forEach(event.response.responses):
       deployRPM:
         nodeId: ${@i.nodeid}
         
-onAfterRedeployContainer [nodeGroup:bl]:
-  - forEach(event.response.responses):
-      deployRPM:
-        nodeId: ${@i.nodeid}
-
-onAfterRedeployContainer [nodeGroup:sqldb]:
-  - forEach(event.response.responses):
-      deployRPM:
-        nodeId: ${@i.nodeid}
-
-onAfterScaleOut [nodeGroup:cp]:
-  - forEach(event.response.nodes):
-      deployRPM:
-        nodeId: ${@i.id}
-onAfterScaleOut [nodeGroup:bl]:
-  - forEach(event.response.nodes):
-      deployRPM:
-        nodeId: ${@i.id}
-onAfterScaleOut [nodeGroup:sqldb]:
+onAfterScaleOut:
   - forEach(event.response.nodes):
       deployRPM:
         nodeId: ${@i.id}
 
-onUninstall: doUninstall
+onUninstall: removeRPM
 
 actions:
-  doInstall:
-    - forEach(nodes.cp):
-        deployRPM:
-          nodeId: ${@i.id}
-  doUninstall:
-    - forEach(nodes.cp):
-        removeRPM:
-          nodeId: ${@i.id}
-
   deployRPM:
     user: root
-    cmd[${targetNodes.nodeGroup}]:
-        - echo "license_key: ${settings.license}" | sudo tee -a /etc/newrelic-infra.yml
-        - curl -o /etc/yum.repos.d/newrelic-infra.repo https://download.newrelic.com/infrastructure_agent/linux/yum/el/7/x86_64/newrelic-infra.repo
-        - yum -q makecache -y --disablerepo='*' --enablerepo='newrelic-infra'
-        - yum -q install newrelic-infra -y
-        - systemctl start newrelic-infra
+    cmd[${this.nodeId}]: |-
+      grep -q license_key /etc/newrelic-infra.yml 2>/dev/null; if [ $? -eq 0 ]; then sed -i -e 's/license_key:.*/license_key: ${settings.license}/' /etc/newrelic-infra.yml;  else echo 'license_key: ${settings.license}' >> /etc/newrelic-infra.yml; fi;
+      grep -q enable_process_metrics /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "enable_process_metrics: true" >> /etc/newrelic-infra.yml; fi;
+      grep -q kernel_modules_refresh_sec /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "kernel_modules_refresh_sec: -1" >> /etc/newrelic-infra.yml; fi;
+      grep -q selinux_enable_semodule /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "selinux_enable_semodule: false" >> /etc/newrelic-infra.yml; fi;
+      grep -q sysctl_interval_sec /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "sysctl_interval_sec: 600" >> /etc/newrelic-infra.yml; fi;
+      curl -o /etc/yum.repos.d/newrelic-infra.repo https://download.newrelic.com/infrastructure_agent/linux/yum/el/7/x86_64/newrelic-infra.repo;
+      yum -q makecache -y --disablerepo='*' --enablerepo='newrelic-infra';
+      yum -q install newrelic-infra -y;
+      chown -R jelastic /etc/newrelic-infra;
+      systemctl start newrelic-infra;
   removeRPM:
     user: root
     cmd[${targetNodes.nodeGroup}]:
