@@ -1,0 +1,5 @@
+Cmnd_Alias NEWRELICINFRA                   = /usr/bin/newrelic-infra *,/usr/bin/newrelic-infra-ctl *,/usr/bin/newrelic-infra-service *, /usr/sbin/service newrelic-infra *, /etc/init.d/newrelic-infra *
+Cmnd_Alias NEWRELICINFRA_SYSTEMCTL         = /usr/bin/systemctl restart newrelic-infra,          /usr/bin/systemctl stop newrelic-infra, /usr/bin/systemctl start newrelic-infra,            /usr/bin/systemctl status newrelic-infra 
+Cmnd_Alias NEWRELICINFRA_SYSTEMCTL_SERVICE = /usr/bin/systemctl restart newrelic-infra.service,  /usr/bin/systemctl stop newrelic-infra, /usr/bin/systemctl start newrelic-infra.service,    /usr/bin/systemctl status newrelic-infra.service
+
+%ssh-access ALL = NOPASSWD: LOGNDA, NEWRELICINFRA_SYSTEMCTL, NEWRELICINFRA_SYSTEMCTL_SERVICE

@@ -2,10 +2,11 @@ version: 0.1
 type: update
 name: 'Newrelic Infrastructure Agent'
 homepage: https://github.com/layershift/jps-newrelic-infra
+baseUrl: https://raw.githubusercontent.com/layershift/jps-newrelic-infra/master
 id: 'newrelic-infra'
 description:
   short: Installs and makes the new relic infra-agent replicate when horizontal scaling
-logo: newrelic.png
+logo: /images/newrelic.png
 categories:
  - apps/others
 
@@ -18,6 +19,18 @@ settings:
       - type: string
         caption: License Key
         name: license
+
+menu:
+  - caption: Restart Newrelic Infra
+    loadingText: Restarting..
+    confirmText: Are you sure you wish to restart Newrelic Infra?
+    action: restartService
+
+buttons:
+  - caption: Status
+    loadingText: Checking..
+    action: checkServiceSetatus
+
 
 onInstall:
   deployRPM:
@@ -38,7 +51,6 @@ onUninstall: removeRPM
 
 actions:
   deployRPM:
-    user: root
     cmd[${this.nodeId}]: |-
       grep -q license_key /etc/newrelic-infra.yml 2>/dev/null; if [ $? -eq 0 ]; then sed -i -e 's/license_key:.*/license_key: ${settings.license}/' /etc/newrelic-infra.yml;  else echo 'license_key: ${settings.license}' >> /etc/newrelic-infra.yml; fi;
       grep -q enable_process_metrics /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "enable_process_metrics: true" >> /etc/newrelic-infra.yml; fi;
@@ -48,12 +60,32 @@ actions:
       curl -o /etc/yum.repos.d/newrelic-infra.repo https://download.newrelic.com/infrastructure_agent/linux/yum/el/7/x86_64/newrelic-infra.repo;
       yum -q makecache -y --disablerepo='*' --enablerepo='newrelic-infra';
       yum -q install newrelic-infra -y;
-      chown -R jelastic /etc/newrelic-infra;
+      chown -R jelastic /etc/newrelic-infra /etc/newrelic-infra.yml;
+      systemctl enable newrelic-infra;
       systemctl start newrelic-infra;
-  removeRPM:
+      curl -fsSL '${baseUrl}/scripts/sudo_newrelicInfra' -o /etc/sudoers.d/newrelicInfra;
+    sayYes: true
     user: root
+
+  removeRPM:
     cmd[${targetNodes.nodeGroup}]:
         - systemctl stop newrelic-infra
         - systemctl disable newrelic-infra
         - yum -q autoremove newrelic-infra -y
-        - rm -rf /etc/yum.repos.d/newrelic-infra.repo
+        - rm -f /etc/yum.repos.d/newrelic-infra.repo
+        - rm -f /etc/sudoers.d/newrelicInfra;
+    sayYes: true
+    user: root
+
+  restartService:
+    cmd[${targetNodes.nodeGroup}]:
+        - systemctl restart newrelic-infra
+    sayYes: true
+    user: root
+
+  checkServiceSetatus:
+    cmd[${targetNodes.nodeGroup}]:
+        - systemctl status newrelic-infra --lines=0
+    sayYes: true
+    user: root
+
