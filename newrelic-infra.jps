@@ -6,7 +6,7 @@ baseUrl: https://raw.githubusercontent.com/layershift/jps-newrelic-infra/master
 id: 'newrelic-infra'
 description:
   short: Installs and makes the new relic infra-agent replicate when horizontal scaling
-logo: /images/newrelic.png
+logo: /images/newrelic_.png
 categories:
  - apps/others
 
@@ -78,14 +78,27 @@ actions:
     user: root
 
   restartService:
-    cmd[${targetNodes.nodeGroup}]:
+    - cmd[${targetNodes.nodeGroup}]:
         - systemctl restart newrelic-infra
-    sayYes: true
-    user: root
+      sayYes: true
+      user: root
+    - message: ${response.out}
+      script: |
+        return {result: 2308, message: message.replace(/\n/g, '  \n')}
 
   checkServiceSetatus:
-    cmd[${targetNodes.nodeGroup}]:
+    - cmd[${targetNodes.nodeGroup}]:
         - systemctl status newrelic-infra --lines=0
-    sayYes: true
-    user: root
+      sayYes: true
+      user: root
+    - message: ${response.out}
+      script: |
+        return {result: 2308, message: message.replace(/\n/g, '  \n')}
+
+responses:
+  2308:
+    type: success
+  
+  2309:
+    type: error
 
