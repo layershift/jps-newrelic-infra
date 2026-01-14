@@ -57,7 +57,7 @@ actions:
       grep -q kernel_modules_refresh_sec /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "kernel_modules_refresh_sec: -1" >> /etc/newrelic-infra.yml; fi;
       grep -q selinux_enable_semodule /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "selinux_enable_semodule: false" >> /etc/newrelic-infra.yml; fi;
       grep -q sysctl_interval_sec /etc/newrelic-infra.yml 2>/dev/null; if [ $? -ne 0 ]; then echo "sysctl_interval_sec: 600" >> /etc/newrelic-infra.yml; fi;
-      curl -o /etc/yum.repos.d/newrelic-infra.repo https://download.newrelic.com/infrastructure_agent/linux/yum/el/7/x86_64/newrelic-infra.repo;
+      curl -o /etc/yum.repos.d/newrelic-infra.repo https://download.newrelic.com/infrastructure_agent/linux/yum/el/9/x86_64/newrelic-infra.repo;
       yum -q makecache -y --disablerepo='*' --enablerepo='newrelic-infra';
       yum -q install newrelic-infra -y;
       chown -R jelastic /etc/newrelic-infra /etc/newrelic-infra.yml;
